@@ -1,14 +1,16 @@
 package com.example.todo.controllers;
 
-import com.example.todo.dtos.CreateTaskDTO;
-import com.example.todo.dtos.EditDTO;
-import com.example.todo.dtos.ErrorDTO;
+import com.example.todo.dtos.*;
+import com.example.todo.entities.NotesEntity;
 import com.example.todo.entities.Task;
+import com.example.todo.services.NotesService;
 import com.example.todo.services.TaskService;
+import org.modelmapper.ModelMapper;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -16,9 +18,11 @@ import java.util.List;
 public class TaskController {
 
     private final TaskService service;
+    private final NotesService notesService;
 
-    public TaskController(TaskService service) {
+    public TaskController(TaskService service, NotesService notesService) {
         this.service = service;
+        this.notesService = notesService;
     }
 
     @GetMapping("")
@@ -27,17 +31,26 @@ public class TaskController {
         var allTasks=service.getTaskList();
 
         return ResponseEntity.ok(allTasks);
-
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Task> getTaskById(@PathVariable("id") Integer id)
+    public ResponseEntity<TaskResponseDTO> getTaskById(@PathVariable("id") Integer id)
     {
         var task =service.getTaskById(id);
 
         if(task==null)return ResponseEntity.notFound().build();
 
-        return ResponseEntity.ok(task);
+        ArrayList<NotesEntity> notes=notesService.getNotesByTaskId(id);
+
+        ModelMapper mapper=new ModelMapper();
+
+        TaskResponseDTO taskReponse=new TaskResponseDTO();
+
+       mapper.map(task,taskReponse);
+
+       taskReponse.setNotesEntities(notes);
+
+        return ResponseEntity.ok(taskReponse);
     }
 
     @PutMapping("/{id}")
